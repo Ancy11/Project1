@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 
 
 @Controller
@@ -40,9 +43,51 @@ public class UserController {
     //This controller method is called when the request pattern is of type 'users/registration' and also the incoming request is of POST type
     //This method calls the business logic and after the user record is persisted in the database, directs to login page
     @RequestMapping(value = "users/registration", method = RequestMethod.POST)
-    public String registerUser(User user) {
-        userService.registerUser(user);
-        return "redirect:/users/login";
+    public String registerUser(User user,Model model) {
+
+        boolean isValidPassword=false;
+        boolean has_char =false;
+        boolean has_digit =false;
+        boolean has_sp =false;
+
+        //Adding the logic here to check password strength
+        String password= user.getPassword();
+        Pattern p =Pattern.compile("[^A-Za-z0-9]");
+        Matcher m =p.matcher(password);
+        has_sp= m.find();
+        for (int i=0;i<password.length();i++){
+            char x = password.charAt(i);
+            if(Character.isLetter(x)) {
+                has_char = true;
+            }
+              else  if(Character.isDigit(x)) {
+                has_digit=true;
+            }
+
+        }
+        if(has_char ==true)
+        {
+            if(has_digit==true){
+                if(has_sp==true){
+                    isValidPassword =true;
+                }
+            }
+        }
+
+        if(isValidPassword) {
+
+            userService.registerUser(user);
+            return "users/login";
+        }
+        else{
+            user = new User();
+            UserProfile profile = new UserProfile();
+            user.setProfile(profile);
+            model.addAttribute("User", user);
+            String error = "Password must contain atleast 1 character,1 digit and one special character";
+            model.addAttribute("passwordTypeError",error);
+            return "users/registration";
+        }
     }
 
     //This controller method is called when the request pattern is of type 'users/login'
